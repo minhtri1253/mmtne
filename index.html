@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>🎀 Vòng Quay May Mắn 20/10</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:linear-gradient(135deg,#fff1f6,#ffe1ec);color:#3b1d2a}
+.container{max-width:950px;margin:auto;padding:20px}
+.card{background:#fff;border-radius:22px;padding:22px;margin:15px 0;box-shadow:0 8px 30px #8b315022}
+h1{text-align:center;color:#d6336c;margin:5px 0}
+.sub{text-align:center;color:#8c596d}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+input,button{font:inherit;padding:13px 16px;border-radius:13px}
+input{border:1px solid #ddd;flex:1;min-width:220px}
+button{border:0;background:#d6336c;color:#fff;font-weight:700;cursor:pointer}
+button:disabled{opacity:.55;cursor:not-allowed}
+.wheel-area{text-align:center}
+.pointer{font-size:42px;color:#d6336c;height:35px}
+.seg{position:absolute;left:50%;top:50%;width:78px;text-align:center;font-weight:900;font-size:13px;color:#8b173f;transform-origin:0 0}.s1{transform:rotate(-60deg) translate(92px,-8px)}.s2{transform:rotate(0deg) translate(92px,-8px)}.s3{transform:rotate(60deg) translate(92px,-8px)}.s4{transform:rotate(120deg) translate(92px,-8px)}.s5{transform:rotate(180deg) translate(92px,-8px)}.s6{transform:rotate(240deg) translate(92px,-8px)}.center{position:absolute;inset:35%;border-radius:50%;background:#fff;display:grid;place-items:center;font-weight:900;color:#d6336c;font-size:18px;box-shadow:0 2px 12px #0002;z-index:2}
+.wheel{width:min(350px,82vw);height:min(350px,82vw);margin:10px auto 20px;border-radius:50%;border:10px solid white;box-shadow:0 8px 30px #0002;position:relative;overflow:hidden;transition:transform 8s cubic-bezier(.08,.75,.12,1);background:conic-gradient(#ff8fab 0deg 60deg,#ffd1dc 60deg 120deg,#ff8fab 120deg 180deg,#ffd1dc 180deg 240deg,#ff8fab 240deg 300deg,#ffd1dc 300deg 360deg)}
+.wheel:after{content:"20/10";position:absolute;inset:32%;border-radius:50%;background:white;display:grid;place-items:center;font-weight:900;color:#d6336c;font-size:20px;box-shadow:0 2px 12px #0002}
+.spin{font-size:20px;padding:15px 30px;background:#d6336c}
+.result{font-size:26px;font-weight:800;margin:18px 0;min-height:36px}
+.win{color:#16a34a}.lose{color:#d6336c}
+table{width:100%;border-collapse:collapse;overflow:hidden;border-radius:12px}
+th,td{padding:12px;text-align:left;border-bottom:1px solid #eee}
+th{background:#fff0f5}
+.badge{display:inline-block;padding:5px 10px;border-radius:999px;font-weight:700}
+.badge.win{background:#dcfce7}.badge.lose{background:#ffe4e6}
+.note{background:#fff7fa;border-left:4px solid #d6336c;padding:12px;border-radius:8px;font-size:14px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:15px}
+.danger{background:#9f1239}
+.empty{text-align:center;color:#999;padding:20px}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="card">
+<h1>🎀 VÒNG QUAY MAY MẮN 20/10 🎀</h1>
+<p class="sub">Chúc mừng ngày Phụ nữ Việt Nam • Cơ hội trúng thưởng: <b>0,5% mỗi lượt</b></p><p class="note">🔒 Thiết bị được ghi nhận bằng mã thiết bị lưu trong trình duyệt. Đổi tên không tạo thêm lượt quay.</p>
+<div class="row">
+<input id="name" placeholder="Nhập tên người tham gia..." maxlength="60">
+<button onclick="addPerson()">Thêm tên</button>
+</div>
+</div>
+
+<div class="card wheel-area">
+<div class="pointer">▼</div>
+<div id="wheel" class="wheel">
+<div class="seg s1">TRÚNG</div><div class="seg s2">KHÔNG</div>
+<div class="seg s3">KHÔNG</div><div class="seg s4">KHÔNG</div>
+<div class="seg s5">KHÔNG</div><div class="seg s6">KHÔNG</div>
+<div class="center">20/10</div>
+</div>
+<button id="spinBtn" class="spin" onclick="spin()">🎁 QUAY NGAY</button>
+<div id="attempts" class="sub" style="margin-top:10px">Lượt quay còn lại: <b>3/3</b></div>
+<div id="result" class="result"></div>
+</div>
+
+<div class="card">
+<h2>📋 Bảng người đã quay</h2>
+<p class="note">Mỗi tên chỉ được quay 1 lần. Kết quả được lưu trên thiết bị này.</p>
+<div style="overflow-x:auto">
+<table>
+<thead><tr><th>#</th><th>Tên</th><th>Kết quả</th><th>Thời gian</th></tr></thead>
+<tbody id="history"></tbody>
+</table>
+</div>
+<div class="actions">
+<button onclick="exportCSV()">📥 Xuất Excel/CSV</button>
+
+</div>
+</div>
+</div>
+
+<script>
+const KEY="oct20_lucky_wheel_v1";
+const DEVICE_KEY="oct20_device_id_v1";
+let deviceId=localStorage.getItem(DEVICE_KEY);
+if(!deviceId){deviceId=(crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(36).slice(2));localStorage.setItem(DEVICE_KEY,deviceId);}
+let data=JSON.parse(localStorage.getItem(KEY)||"[]");
+let spinning=false;
+
+function save(){localStorage.setItem(KEY,JSON.stringify(data));render();}
+function esc(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));}
+
+function addPerson(){
+ const existing=data.find(x=>x.deviceId===deviceId);
+ if(existing)return alert("Thiết bị này đã đăng ký người chơi rồi. Đổi tên cũng không được quay thêm!");
+ const input=document.getElementById("name"), name=input.value.trim();
+ if(!name)return alert("Nhập tên trước nhé!");
+ if(data.some(x=>x.name.toLowerCase()===name.toLowerCase())){
+   return alert("Tên này đã có trong bảng rồi!");
+ }
+ data.push({name,result:null,time:null,attempts:3,deviceId:deviceId});
+ input.value="";
+ save();
+ input.focus();
+}
+
+function spin(){
+ if(spinning)return;
+ data.forEach(x=>{if(x.attempts===undefined)x.attempts=x.result===null?3:0;if(!x.deviceId)x.deviceId="legacy-"+Math.random().toString(36).slice(2);});
+ const person=data.find(x=>x.deviceId===deviceId && x.result===null && x.attempts>0);
+ const available=person?[person]:[];
+ if(!available.length)return alert("Không còn người chưa quay!");
+ spinning=true;
+ document.getElementById("spinBtn").disabled=true;
+ document.getElementById("result").textContent="";
+
+ // Xác suất trúng chính xác 2%: random < 0.02.
+ const isWin=Math.random()<0.005;
+ const person=available[0];
+ const turns=12+Math.floor(Math.random()*4);
+ document.getElementById("wheel").style.transform=`rotate(${turns*360+Math.random()*60}deg)`;
+
+ setTimeout(()=>{
+   person.attempts--;
+   if(isWin){
+     person.result="TRÚNG";
+     person.time=new Date().toLocaleString("vi-VN");
+   } else if(person.attempts<=0){
+     person.result="KHÔNG TRÚNG";
+     person.time=new Date().toLocaleString("vi-VN");
+   }
+   const r=document.getElementById("result");
+   if(isWin){
+     r.textContent="🎉 CHÚC MỪNG! BẠN ĐÃ TRÚNG!";
+     r.className="result win";
+   } else if(person.attempts>0){
+     r.textContent="💗 Chưa trúng! Bạn còn "+person.attempts+" lượt quay.";
+     r.className="result lose";
+   } else {
+     r.textContent="💗 Rất tiếc! Đã hết 3 lượt quay.";
+     r.className="result lose";
+   }
+   spinning=false;
+   document.getElementById("spinBtn").disabled=false;
+   updateAttempts(person);
+   save();
+ },8500);
+}
+
+function updateAttempts(person){
+ const el=document.getElementById("attempts");
+ if(person) el.innerHTML="Lượt quay còn lại: <b>"+person.attempts+"/3</b>";
+}
+function render(){
+ const body=document.getElementById("history");
+ if(!data.length){body.innerHTML='<tr><td colspan="4" class="empty">Chưa có người tham gia.</td></tr>';return;}
+ body.innerHTML=data.map((x,i)=>{
+   let badge=x.result?`<span class="badge ${x.result==="TRÚNG"?"win":"lose"}">${x.result==="TRÚNG"?"🎉 TRÚNG":"💗 KHÔNG TRÚNG"}</span>`:"⏳ Chưa quay";
+   return `<tr><td>${i+1}</td><td><b>${esc(x.name)}</b></td><td>${badge}<br><small>${x.result?"Đã kết thúc":"Còn "+(x.attempts===undefined?3:x.attempts)+" lượt"}</small></td><td>${x.time||"—"}</td></tr>`;
+ }).join("");
+}
+
+function exportCSV(){
+ let rows=[["STT","Tên","Kết quả","Thời gian"],...data.map((x,i)=>[i+1,x.name,x.result||"Chưa quay",x.time||""])];
+ let csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");
+ let a=document.createElement("a");
+ a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));
+ a.download="ket-qua-vong-quay-20-10.csv";a.click();
+ URL.revokeObjectURL(a.href);
+}
+document.getElementById("name").addEventListener("keydown",e=>{if(e.key==="Enter")addPerson()});
+render();
+</script>
+</body>
+</html>
